@@ -1,0 +1,19 @@
+{
+  "globals": {
+    "wrapper": true,
+    "expect": true,
+    "Element": true
+  },
+  "root": true,
+  "plugins": [
+    "flowtype"
+  ],
+  "extends": [
+    "plugin:kdu-libs/recommended",
+    "plugin:flowtype/recommended"
+  ],
+  rules: {
+    "no-debugger": 2,
+    "no-proto": 0
+  }
+}
