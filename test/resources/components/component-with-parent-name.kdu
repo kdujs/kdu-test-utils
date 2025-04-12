@@ -1,0 +1,20 @@
+<template>
+  <div>
+    <span baz="qux">{{ fromLocalKdu }},{{ bar }}</span>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'component-with-parent-name',
+  props: ['fromLocalKdu'],
+  data() {
+    return {
+      bar: 'quux'
+    }
+  },
+  mounted() {
+    this.$parent.childComponentName = this.$options.name
+  }
+}
+</script>

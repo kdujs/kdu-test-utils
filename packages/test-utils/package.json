@@ -1,0 +1,35 @@
+{
+  "name": "@kdujs/test-utils",
+  "version": "1.0.0-0",
+  "description": "Utilities for testing Kdu components.",
+  "main": "dist/kdu-test-utils.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/*.js",
+    "types/index.d.ts"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:test": "cross-env NODE_ENV=test SHOW_DEPRECATIONS=false node scripts/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kdujs/kdu-test-utils.git",
+    "directory": "packages/test-utils"
+  },
+  "author": "kdujs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kdujs/kdu-test-utils/issues"
+  },
+  "homepage": "https://github.com/kdujs/kdu-test-utils#readme",
+  "peerDependencies": {
+    "kdu": "2.x",
+    "kdu-template-compiler": "^2.x"
+  },
+  "dependencies": {
+    "dom-event-types": "1.0.0",
+    "lodash": "4.17.15",
+    "pretty": "2.0.0"
+  }
+}

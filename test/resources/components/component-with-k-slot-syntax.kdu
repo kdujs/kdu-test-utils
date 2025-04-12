@@ -1,0 +1,17 @@
+<template>
+  <ComponentWithKSlot>
+    <template k-slot:newSyntax>
+      <p class="new-example">new slot syntax</p>
+    </template>
+  </ComponentWithKSlot>
+</template>
+
+<script>
+import ComponentWithKSlot from './component-with-k-slot.kdu'
+
+export default {
+  name: 'ComponentWithKSlotSyntax',
+
+  components: { ComponentWithKSlot }
+}
+</script>

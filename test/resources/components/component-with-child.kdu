@@ -1,0 +1,18 @@
+<template>
+  <div>
+    <span>
+      <child-component ref="child" />
+    </span>
+  </div>
+</template>
+
+<script>
+import ChildComponent from './component.kdu'
+
+export default {
+  name: 'component-with-child',
+  components: {
+    ChildComponent
+  }
+}
+</script>

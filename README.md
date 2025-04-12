@@ -1,13 +1,26 @@
-# kdu-test-utils
+# Kdu Test Utils
 
-## Currently in beta
-To use kdu-test-utils beta:
+## Packages
+
+This repository provides the following two packages.  
+They are currently in beta.
+
+- [Kdu Test Utils](./packages/test-utils)
+- [Kdu Server Test Utils](./packages/server-test-utils)
+
+You can install these packages by the following command.
+
 ```
-// npm
 npm install --save-dev @kdujs/test-utils
+npm install --save-dev @kdujs/server-test-utils
+```
 
-// yarn
-yarn add --dev @kdujs/test-utils
+## Peer Dependencies
+
+You need to install `kdu-template-compiler` which is used to compile components. It should be the same version as the version of Kdu you are using.
+
+```
+npm install --save-dev kdu-template-compiler
 ```
 
 ## License

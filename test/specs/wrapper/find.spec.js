@@ -1,0 +1,628 @@
+import { compileToFunctions } from 'kdu-template-compiler'
+import { createLocalKdu } from '@kdujs/test-utils'
+import Kdu from 'kdu'
+import ComponentWithChild from '~resources/components/component-with-child.kdu'
+import ComponentWithoutName from '~resources/components/component-without-name.kdu'
+import ComponentWithSlots from '~resources/components/component-with-slots.kdu'
+import ComponentWithKFor from '~resources/components/component-with-k-for.kdu'
+import Component from '~resources/components/component.kdu'
+import FunctionalComponent from '~resources/components/functional-component.kdu'
+import ComponentAsAClass from '~resources/components/component-as-a-class.kdu'
+import {
+  functionalSFCsSupported,
+  kduVersion,
+  describeWithShallowAndMount,
+  isRunningPhantomJS
+} from '~resources/utils'
+import { itDoNotRunIf, itSkipIf } from 'conditional-specs'
+
+describeWithShallowAndMount('find', mountingMethod => {
+  it('returns a Wrapper matching tag selector passed', () => {
+    const compiled = compileToFunctions('<div><p></p><p></p></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('p').knode).to.be.an('object')
+    expect(wrapper.find('p').vm).to.equal(undefined)
+  })
+
+  it('returns Wrapper matching class selector passed', () => {
+    const compiled = compileToFunctions('<div><div class="foo" /></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('.foo').knode).to.be.an('object')
+    expect(wrapper.find('.foo').vm).to.equal(undefined)
+  })
+
+  it('returns Wrapper matching class selector passed if nested in a transition', () => {
+    const compiled = compileToFunctions('<transition><div /></transition>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('div').knode).to.be.an('object')
+  })
+
+  itDoNotRunIf(
+    isRunningPhantomJS,
+    'returns an array of Wrapper of elements matching class selector passed if they are declared inside a slot',
+    () => {
+      const wrapper = mountingMethod(ComponentWithSlots, {
+        slots: {
+          default: '<div class="foo"></div>'
+        }
+      })
+      expect(wrapper.find('.foo').knode).to.be.an('object')
+    }
+  )
+
+  it('returns Wrapper matching class selector passed if they are declared inside a functional component', () => {
+    const TestComponent = {
+      functional: true,
+      render(h, { props }) {
+        return h('div', {}, [
+          h('p', {
+            class: {
+              foo: true
+            }
+          }),
+          h('p')
+        ])
+      },
+      name: 'common'
+    }
+    const context = {
+      data: { hello: true }
+    }
+    const wrapper = mountingMethod(TestComponent, {
+      context
+    })
+    expect(wrapper.find('.foo').knode).to.be.an('object')
+  })
+
+  it('returns Wrapper of elements matching id selector passed', () => {
+    const compiled = compileToFunctions('<div><div id="foo" /></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('#foo').knode).to.be.an('object')
+  })
+
+  it('returns matching extended component', () => {
+    const ChildComponent = Kdu.extend({
+      template: '<div />',
+      props: ['propA'],
+      name: 'child-component'
+    })
+    const TestComponent = {
+      template: '<child-component propA="hey" />',
+      components: { ChildComponent }
+    }
+    const wrapper = mountingMethod(TestComponent)
+
+    expect(wrapper.find(ChildComponent).name()).to.equal('child-component')
+  })
+
+  it('returns Wrapper of elements matching attribute selector passed', () => {
+    const compiled = compileToFunctions('<div><a href="/"></a></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('[href="/"]').knode).to.be.an('object')
+  })
+
+  it('throws an error when passed an invalid DOM selector', () => {
+    const compiled = compileToFunctions('<div><a href="/"></a></div>')
+    const wrapper = mountingMethod(compiled)
+    const message =
+      '[kdu-test-utils]: wrapper.find() must be passed a valid CSS selector, Kdu constructor, or valid find option object'
+    const fn = () => wrapper.find('[href=&6"/"]')
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('returns Wrapper of elements matching selector when descendant combinator passed', () => {
+    const compiled = compileToFunctions(
+      '<div><ul><li>list</li>item<li></li></ul></div>'
+    )
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('div li').knode).to.be.an('object')
+  })
+
+  it('returns Wrapper of elements matching selector with direct descendant combinator passed', () => {
+    const compiled = compileToFunctions('<div><ul><ul></ul></ul></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('div > ul').knode).to.be.an('object')
+  })
+
+  it('returns Wrapper of elements matching pseudo selector', () => {
+    const compiled = compileToFunctions('<div><p></p><p></p></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find('p:first-of-type').knode).to.be.an('object')
+  })
+
+  it('returns Wrapper of Kdu Components matching component', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    expect(wrapper.find(Component).knode).to.be.an('object')
+  })
+
+  it('returns Wrapper of Kdu Components matching component using findComponent', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    expect(wrapper.findComponent(Component).knode).to.be.an('object')
+  })
+
+  it('throws an error if findComponent selector is a CSS selector', () => {
+    const wrapper = mountingMethod(Component)
+    const message =
+      '[kdu-test-utils]: findComponent requires a Kdu constructor or valid find object. If you are searching for DOM nodes, use `find` instead'
+    const fn = () => wrapper.findComponent('#foo')
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('throws an error if findComponent is chained off a DOM element', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    const message =
+      '[kdu-test-utils]: You cannot chain findComponent off a DOM element. It can only be used on Kdu Components.'
+    const fn = () => wrapper.find('span').findComponent('#foo')
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  itSkipIf(isRunningPhantomJS, 'returns Wrapper of class component', () => {
+    const TestComponent = {
+      template: `
+        <div>
+          <component-as-a-class />
+        </div>
+      `,
+      components: {
+        ComponentAsAClass
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+
+    expect(wrapper.find(ComponentAsAClass).knode).to.be.an('object')
+  })
+
+  itDoNotRunIf(
+    mountingMethod.name === 'shallowMount',
+    'follows DOM tree order',
+    () => {
+      const TestComponent = {
+        template: `
+      <main>
+        <div class="1">
+          <div class="1a"><div class="1aa"/></div><div class="1b" />
+        </div>
+        <component-2 />
+        <div class="3" />
+      </main>
+      `,
+        components: {
+          'component-2': {
+            template: '<div class="2" />'
+          }
+        }
+      }
+      const wrapper = mountingMethod(TestComponent)
+      const wrappers = wrapper.findAll('div').wrappers
+      const expectedClasses = ['1', '1a', '1aa', '1b', '2', '3']
+      wrappers.forEach((w, i) =>
+        expect(w.classes()).to.contain(expectedClasses[i])
+      )
+    }
+  )
+
+  it('returns functional component', () => {
+    if (!functionalSFCsSupported) {
+      return
+    }
+    const TestComponent = {
+      template: `
+        <div>
+          <functional-component />
+        </div>
+      `,
+      components: {
+        FunctionalComponent
+      }
+    }
+
+    const wrapper = mountingMethod(TestComponent)
+
+    expect(wrapper.find(FunctionalComponent).knode).to.be.an('object')
+    expect(wrapper.find(FunctionalComponent).vm).to.equal(undefined)
+  })
+
+  it('returns functional component with name', () => {
+    const TestFunctionalComponent = {
+      render: h => h('div'),
+      functional: true,
+      name: 'test-functional-component'
+    }
+    const TestComponent = {
+      template: '<div><test-functional-component /></div>',
+      components: {
+        TestFunctionalComponent
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    if (kduVersion < 2.3) {
+      const message =
+        '[kdu-test-utils]: find for functional components is not supported in Kdu < 2.3'
+      const fn = () => wrapper.find(TestFunctionalComponent)
+      expect(fn)
+        .to.throw()
+        .with.property('message', message)
+    } else {
+      expect(wrapper.find(TestFunctionalComponent).exists()).to.equal(true)
+    }
+  })
+
+  it('returns extended functional component', () => {
+    const TestFunctionalComponent = Kdu.extend({
+      render: h => h('div'),
+      functional: true
+    })
+    const TestComponent = {
+      template: '<div><test-functional-component /></div>',
+      components: {
+        TestFunctionalComponent
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    if (kduVersion < 2.3) {
+      const message =
+        '[kdu-test-utils]: find for functional components is not supported in Kdu < 2.3'
+      const fn = () => wrapper.find(TestFunctionalComponent)
+      expect(fn)
+        .to.throw()
+        .with.property('message', message)
+    } else {
+      expect(wrapper.find(TestFunctionalComponent).exists()).to.equal(true)
+    }
+  })
+
+  it('works correctly with innerHTML', () => {
+    const TestComponent = {
+      render(createElement) {
+        return createElement('div', {
+          domProps: {
+            innerHTML: '<svg></svg>'
+          }
+        })
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    expect(
+      wrapper
+        .find('svg')
+        .find('svg')
+        .exists()
+    ).to.equal(true)
+  })
+
+  it('throws errror when searching for a component on an element Wrapper', () => {
+    const TestComponent = {
+      render(createElement) {
+        return createElement('div', {
+          domProps: {
+            innerHTML: '<svg></svg>'
+          }
+        })
+      }
+    }
+    const fn = () =>
+      mountingMethod(TestComponent)
+        .find('svg')
+        .find(Component)
+    const message =
+      '[kdu-test-utils]: cannot find a Kdu instance on a DOM node. The node you are calling find on does not exist in the VDom. Are you adding the node as innerHTML?'
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('throws errror when using ref selector on an element Wrapper', () => {
+    const TestComponent = {
+      render(createElement) {
+        return createElement('div', {
+          domProps: {
+            innerHTML: '<svg></svg>'
+          }
+        })
+      }
+    }
+    const fn = () =>
+      mountingMethod(TestComponent)
+        .find('svg')
+        .find({ ref: 'some-ref' })
+    const message =
+      '[kdu-test-utils]: cannot find a Kdu instance on a DOM node. The node you are calling find on does not exist in the VDom. Are you adding the node as innerHTML?'
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('returns correct number of Kdu Wrappers when component has a k-for', () => {
+    const items = [{ id: 1 }, { id: 2 }, { id: 3 }]
+    const wrapper = mountingMethod(ComponentWithKFor, { propsData: { items } })
+    expect(wrapper.find(Component).knode).to.be.an('object')
+  })
+
+  it('returns Wrapper matching selector using Wrapper as reference', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    const div = wrapper.find('span')
+    expect(div.find(Component).knode).to.be.an('object')
+  })
+
+  it('selector works between mounts', () => {
+    const ChildComponent = { template: '<div />' }
+    const TestComponent = {
+      template: '<child-component />',
+      components: {
+        ChildComponent
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    mountingMethod(ChildComponent)
+    expect(wrapper.find(ChildComponent).knode).to.be.an('object')
+  })
+
+  it('returns error Wrapper if Kdu component is below Wrapper', () => {
+    const AComponent = {
+      render: () => {},
+      name: 'a-component'
+    }
+    const localKdu = createLocalKdu()
+    localKdu.component('a-component', AComponent)
+    const TestComponent = {
+      template: `
+        <div>
+          <span />
+          <a-component />
+        </div>
+      `
+    }
+    const wrapper = mountingMethod(TestComponent, { localKdu })
+    const span = wrapper.find('span')
+    expect(span.find(AComponent).exists()).to.equal(false)
+  })
+
+  it('returns empty Wrapper with error if no nodes are found', () => {
+    const wrapper = mountingMethod(Component)
+    const selector = 'pre'
+    const error = wrapper.find(selector)
+    expect(error.exists()).to.equal(false)
+    expect(error.selector).to.equal(selector)
+  })
+
+  it('returns empty Wrapper with error if no nodes are found when passed a component', () => {
+    const wrapper = mountingMethod(Component)
+    const error = wrapper.find(ComponentWithChild)
+    expect(error.exists()).to.equal(false)
+    expect(error.selector).to.equal(ComponentWithChild)
+  })
+
+  it('returns Wrapper of elements matching the ref in options object', () => {
+    const compiled = compileToFunctions('<div><p ref="foo"></p></div>')
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find({ ref: 'foo' })).to.be.an('object')
+  })
+
+  itSkipIf(kduVersion < 2.3, 'returns functional extended component', () => {
+    const FunctionalExtendedComponent = Kdu.extend({
+      functional: true,
+      render: h => h('div')
+    })
+    const TestComponent = {
+      template: '<div><functional-extended-component /></div>',
+      components: {
+        FunctionalExtendedComponent
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    expect(wrapper.find(FunctionalExtendedComponent).exists()).to.equal(true)
+  })
+
+  it('returns Wrapper of Kdu Component matching the extended component', () => {
+    const BaseComponent = {
+      template: '<div><a-component /></div>',
+      components: {
+        AComponent: Component
+      }
+    }
+    const TestComponent = {
+      extends: BaseComponent,
+      name: 'test-component'
+    }
+    const wrapper = mountingMethod(TestComponent)
+    expect(wrapper.find(TestComponent).exists()).to.equal(true)
+    expect(wrapper.find(TestComponent).isKduInstance()).to.equal(true)
+  })
+
+  it('works for extended child components', () => {
+    const ChildComponent = Kdu.extend({
+      template: '<div />'
+    })
+    const TestComponent = {
+      template: '<child-component />',
+      components: {
+        ChildComponent
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    expect(wrapper.find(ChildComponent).exists()).to.equal(true)
+  })
+
+  it('returns a Wrapper matching a component name in options object', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    expect(wrapper.find({ name: 'test-component' }).name()).to.equal(
+      'test-component'
+    )
+  })
+
+  it('returns a Wrapper matching a camelCase name option and a Pascal Case component name ', () => {
+    const component = {
+      name: 'CamelCase',
+      render: h => h('div')
+    }
+    const wrapper = mountingMethod(component)
+    expect(wrapper.find({ name: 'camelCase' }).name()).to.equal('CamelCase')
+  })
+
+  it('returns a Wrapper matching a kebab-case name option and a Pascal Case component name ', () => {
+    const component = {
+      name: 'CamelCase',
+      render: h => h('div')
+    }
+    const wrapper = mountingMethod(component)
+    expect(wrapper.find({ name: 'camel-case' }).name()).to.equal('CamelCase')
+  })
+
+  it('returns a Wrapper matching a Pascal Case name option and a kebab-casecomponent name ', () => {
+    const component = {
+      name: 'camel-case',
+      render: h => h('div')
+    }
+    const wrapper = mountingMethod(component)
+    expect(wrapper.find({ name: 'CamelCase' }).name()).to.equal('camel-case')
+  })
+
+  it('returns Wrapper of Kdu Component matching the ref in options object', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    expect(wrapper.find({ ref: 'child' }).isKduInstance()).to.equal(true)
+  })
+
+  it('throws an error when ref selector is called on a wrapper that is not a Kdu component', () => {
+    const compiled = compileToFunctions('<div><a href="/"></a></div>')
+    const wrapper = mountingMethod(compiled)
+    const a = wrapper.find('a')
+    const message =
+      '[kdu-test-utils]: $ref selectors can only be used on Kdu component wrappers'
+    const fn = () => a.find({ ref: 'foo' })
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('returns Wrapper matching ref selector in options object passed if nested in a transition', () => {
+    const compiled = compileToFunctions(
+      '<transition><div ref="foo"/></transition>'
+    )
+    const wrapper = mountingMethod(compiled)
+    expect(wrapper.find({ ref: 'foo' })).to.be.an('object')
+  })
+
+  it('returns empty Wrapper with error if no nodes are found via ref in options object', () => {
+    const wrapper = mountingMethod(Component)
+    const selector = { ref: 'foo' }
+    const error = wrapper.find(selector)
+    expect(error.exists()).to.equal(false)
+    expect(error.selector).to.equal(selector)
+  })
+
+  it('returns Wrapper matching component that has no name property', () => {
+    const TestComponent = {
+      template: `
+        <div>
+          <component-without-name />
+        </div>
+      `,
+      components: {
+        ComponentWithoutName
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    expect(wrapper.find(ComponentWithoutName).exists()).to.equal(true)
+  })
+
+  it('throws an error if selector is not a valid selector', () => {
+    const wrapper = mountingMethod(Component)
+    const invalidSelectors = [
+      undefined,
+      null,
+      NaN,
+      0,
+      2,
+      true,
+      false,
+      () => {},
+      {},
+      { name: undefined },
+      { ref: 'foo', nope: true },
+      []
+    ]
+    invalidSelectors.forEach(invalidSelector => {
+      const message =
+        '[kdu-test-utils]: wrapper.find() must be passed a valid CSS selector, Kdu constructor, or valid find option object'
+      const fn = () => wrapper.find(invalidSelector)
+      expect(fn)
+        .to.throw()
+        .with.property('message', message)
+    })
+  })
+
+  it('handles unnamed components', async () => {
+    const ChildComponent = {
+      template: '<div />'
+    }
+    const TestComponent = {
+      template: '<child-component k-if="renderChild" />',
+      components: { ChildComponent },
+      data: function() {
+        return {
+          renderChild: false
+        }
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+
+    expect(wrapper.find(ChildComponent).knode).to.be.undefined
+    wrapper.vm.renderChild = true
+    await Kdu.nextTick()
+    expect(wrapper.find(ChildComponent).knode).to.be.an('object')
+  })
+
+  itDoNotRunIf(
+    mountingMethod.name === 'shallowMount',
+    'returns a KduWrapper instance by CSS selector if the element binds a Kdu instance',
+    () => {
+      const childComponent = {
+        name: 'bar',
+        template: '<p/>'
+      }
+      const wrapper = mountingMethod({
+        name: 'foo',
+        template: '<div><child-component /></div>',
+        components: { childComponent }
+      })
+      expect(wrapper.find('div').vm.$options.name).to.equal('foo')
+      expect(wrapper.find('p').vm.$options.name).to.equal('bar')
+    }
+  )
+
+  it('stores CSS selector', () => {
+    const compiled = compileToFunctions('<div><p></p><p></p></div>')
+    const wrapper = mountingMethod(compiled)
+    const selector = 'p'
+    const result = wrapper.find(selector)
+    expect(result.selector).to.equal(selector)
+  })
+
+  it('stores ref selector', () => {
+    const compiled = compileToFunctions('<div><p ref="foo"></p></div>')
+    const wrapper = mountingMethod(compiled)
+    const selector = { ref: 'foo' }
+    const result = wrapper.find(selector)
+    expect(result.selector).to.equal(selector)
+  })
+
+  it('stores component selector', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    const selector = Component
+    const result = wrapper.find(selector)
+    expect(result.selector).to.equal(selector)
+  })
+
+  it('stores name selector', () => {
+    const wrapper = mountingMethod(ComponentWithChild)
+    const selector = { name: 'test-component' }
+    const result = wrapper.find(selector)
+    expect(result.selector).to.equal(selector)
+  })
+})

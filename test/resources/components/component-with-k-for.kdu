@@ -1,0 +1,17 @@
+<template>
+  <div>
+    <AComponent k-for="item in items" :key="item.id" ref="item" />
+  </div>
+</template>
+
+<script>
+import AComponent from './component.kdu'
+
+export default {
+  name: 'component-with-k-for',
+  components: {
+    AComponent
+  },
+  props: ['items']
+}
+</script>

@@ -1,0 +1,9 @@
+{
+  "name": "shared",
+  "version": "1.0.0-0",
+  "private": true,
+  "peerDependencies": {
+    "kdu": "2.x",
+    "kdu-template-compiler": "^2.x"
+  }
+}

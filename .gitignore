@@ -14,9 +14,6 @@ reports
 coverage
 .nyc_output/
 
-# Build
-dist
-
 # Docs
 _book
 .tmp
@@ -25,4 +22,4 @@ tmp*
 # Vim
 *.sw[po]
 
-yarn.lock
+package-lock.json

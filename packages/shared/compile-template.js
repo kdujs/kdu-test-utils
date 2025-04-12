@@ -1,0 +1,60 @@
+// @flow
+
+import { compileToFunctions } from 'kdu-template-compiler'
+import { componentNeedsCompiling } from './validators'
+import { throwError } from './util'
+
+export function compileTemplate(component: Component): void {
+  if (component.template) {
+    if (!compileToFunctions) {
+      throwError(
+        `kduTemplateCompiler is undefined, you must pass ` +
+          `precompiled components if kdu-template-compiler is ` +
+          `undefined`
+      )
+    }
+
+    if (component.template.charAt('#') === '#') {
+      var el = document.querySelector(component.template)
+      if (!el) {
+        throwError('Cannot find element' + component.template)
+
+        el = document.createElement('div')
+      }
+      component.template = el.innerHTML
+    }
+
+    Object.assign(component, {
+      ...compileToFunctions(component.template),
+      name: component.name
+    })
+  }
+
+  if (component.components) {
+    Object.keys(component.components).forEach(c => {
+      const cmp = component.components[c]
+      if (!cmp.render) {
+        compileTemplate(cmp)
+      }
+    })
+  }
+
+  if (component.extends) {
+    compileTemplate(component.extends)
+  }
+
+  if (component.extendOptions && !component.options.render) {
+    compileTemplate(component.options)
+  }
+}
+
+export function compileTemplateForSlots(slots: Object): void {
+  Object.keys(slots).forEach(key => {
+    const slot = Array.isArray(slots[key]) ? slots[key] : [slots[key]]
+    slot.forEach(slotValue => {
+      if (componentNeedsCompiling(slotValue)) {
+        compileTemplate(slotValue)
+      }
+    })
+  })
+}

@@ -4,40 +4,43 @@ import type Wrapper from '~src/Wrapper'
 import type WrapperArray from '~src/WrapperArray'
 
 declare type Selector = any
+declare type Components = { [name: string]: Component }
 
-declare interface BaseWrapper { // eslint-disable-line no-undef
-    at(index: number): Wrapper | void,
-    attributes(): { [name: string]: string } | void,
-    classes(): Array<string> | void,
-    contains(selector: Selector): boolean | void,
-    emitted(event?: string): { [name: string]: Array<Array<any>> } | Array<Array<any>> | void,
-    emittedByOrder(): Array<{ name: string; args: Array<any> }> | void,
-    exists(): boolean,
-    filter(predicate: Function): WrapperArray | void,
-    visible(): boolean | void,
-    hasAttribute(attribute: string, value: string): boolean | void,
-    hasClass(className: string): boolean | void,
-    hasProp(prop: string, value: string): boolean | void,
-    hasStyle(style: string, value: string): boolean | void,
-    find(selector: Selector): Wrapper | void,
-    findAll(selector: Selector): WrapperArray | void,
-    html(): string | void,
-    is(selector: Selector): boolean | void,
-    isEmpty(): boolean | void,
-    isKduInstance(): boolean | void,
-    name(): string | void,
-    props(): { [name: string]: any } | void,
-    text(): string | void,
-    setData(data: Object): void,
-    setComputed(computed: Object): void,
-    setMethods(methods: Object): void,
-    setProps(data: Object): void,
-    trigger(type: string, options: Object): void,
-    update(): void,
-    destroy(): void
+declare interface BaseWrapper {
+  // eslint-disable-line no-undef
+  at(index: number): Wrapper | void;
+  attributes(key?: string): { [name: string]: string } | string | void;
+  classes(className?: string): Array<string> | boolean | void;
+  contains(selector: Selector): boolean | void;
+  emitted(
+    event?: string
+  ): { [name: string]: Array<Array<any>> } | Array<Array<any>> | void;
+  emittedByOrder(): Array<{ name: string, args: Array<any> }> | void;
+  exists(): boolean;
+  filter(predicate: Function): WrapperArray | void;
+  find(selector: Selector): Wrapper | void;
+  findAll(selector: Selector): WrapperArray | void;
+  html(): string | void;
+  is(selector: Selector): boolean | void;
+  isEmpty(): boolean | void;
+  isVisible(): boolean | void;
+  isKduInstance(): boolean | void;
+  name(): string | void;
+  overview(): void;
+  props(key?: string): { [name: string]: any } | any | void;
+  text(): string | void;
+  selector: Selector | void;
+  setData(data: Object): Promise<void> | void;
+  setMethods(methods: Object): void;
+  setValue(value: any): Promise<void> | void;
+  setChecked(checked?: boolean): Promise<void> | void;
+  setSelected(): Promise<void> | void;
+  setProps(data: Object): Promise<void> | void;
+  trigger(type: string, options: Object): Promise<void> | void;
+  destroy(): void;
 }
 
-declare type WrapperOptions = { // eslint-disable-line no-undef
-    attachedToDocument: boolean,
-    error?: string
+declare type WrapperOptions = {
+  // eslint-disable-line no-undef
+  attachedToDocument?: boolean
 }

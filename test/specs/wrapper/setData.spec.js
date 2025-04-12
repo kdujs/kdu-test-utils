@@ -1,0 +1,327 @@
+import { compileToFunctions } from 'kdu-template-compiler'
+import ComponentWithKIf from '~resources/components/component-with-k-if.kdu'
+import ComponentWithWatch from '~resources/components/component-with-watch.kdu'
+import {
+  describeWithShallowAndMount,
+  isPromise,
+  kduVersion
+} from '~resources/utils'
+
+describeWithShallowAndMount('setData', mountingMethod => {
+  const sandbox = sinon.createSandbox()
+
+  beforeEach(() => {
+    sandbox.stub(console, 'info').callThrough()
+  })
+
+  afterEach(() => {
+    sandbox.reset()
+    sandbox.restore()
+  })
+
+  it('sets component data and returns a promise', async () => {
+    const wrapper = mountingMethod(ComponentWithKIf)
+    expect(wrapper.findAll('.child.ready').length).to.equal(0)
+    const response = wrapper.setData({ ready: true })
+    expect(wrapper.findAll('.child.ready').length).to.equal(0)
+    expect(isPromise(response)).to.eql(true)
+    await response
+    expect(wrapper.findAll('.child.ready').length).to.equal(1)
+  })
+
+  it('sets component data and updates nested vm nodes when called on Kdu instance', async () => {
+    const wrapper = mountingMethod(ComponentWithKIf)
+    expect(wrapper.findAll('.child.ready').length).to.equal(0)
+    await wrapper.setData({ ready: true })
+    expect(wrapper.findAll('.child.ready').length).to.equal(1)
+  })
+
+  it('keeps element in sync with knode', async () => {
+    const Component = {
+      template: '<div class="some-class" k-if="show">A custom component!</div>',
+      data() {
+        return {
+          show: false
+        }
+      }
+    }
+    const wrapper = mountingMethod(Component)
+    await wrapper.setData({ show: true })
+    expect(wrapper.element).to.equal(wrapper.vm.$el)
+    expect(wrapper.classes()).to.contain('some-class')
+  })
+
+  it('runs watch function when data is updated', async () => {
+    const wrapper = mountingMethod(ComponentWithWatch)
+    const data1 = 'testest'
+    await wrapper.setData({ data1 })
+    expect(wrapper.vm.data2).to.equal(data1)
+  })
+
+  it('runs watch function after all props are updated', async () => {
+    const wrapper = mountingMethod(ComponentWithWatch)
+    const data1 = 'testest'
+    await wrapper.setData({ data2: 'newProp', data1 })
+    expect(console.info.args[0][0]).to.equal(data1)
+  })
+
+  it('throws error if node is not a Kdu instance', () => {
+    const message = 'wrapper.setData() can only be called on a Kdu instance'
+    const compiled = compileToFunctions('<div><p></p></div>')
+    const wrapper = mountingMethod(compiled)
+    const p = wrapper.find('p')
+    expect(() => p.setData({ ready: true })).throw(Error, message)
+  })
+
+  it('throws error when called on functional knode', () => {
+    const AFunctionalComponent = {
+      render: (h, context) => h('div', context.prop1),
+      functional: true
+    }
+    const message =
+      '[kdu-test-utils]: wrapper.setData() cannot be called on a functional component'
+    const fn = () =>
+      mountingMethod(AFunctionalComponent).setData({ data1: 'data' })
+    expect(fn)
+      .to.throw()
+      .with.property('message', message)
+    // find on functional components isn't supported in Kdu < 2.3
+    if (kduVersion < 2.3) {
+      return
+    }
+    const TestComponent = {
+      template: '<div><a-functional-component /></div>',
+      components: {
+        AFunctionalComponent
+      }
+    }
+    const fn2 = () =>
+      mountingMethod(TestComponent)
+        .find(AFunctionalComponent)
+        .setData({ data1: 'data' })
+    expect(fn2)
+      .to.throw()
+      .with.property('message', message)
+  })
+
+  it('updates watchers if computed is updated', async () => {
+    const TestComponent = {
+      template: `
+        <em>{{ computedText }}</em>
+      `,
+      data() {
+        return {
+          text: '',
+          basket: []
+        }
+      },
+      computed: {
+        computedText() {
+          return this.text
+        }
+      },
+      watch: {
+        text() {
+          this.basket.push(this.computedText)
+        }
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+
+    await wrapper.setData({ text: 'hello' })
+    expect(wrapper.vm.basket[0]).to.equal('hello')
+  })
+
+  it('should not run watcher if data is null', async () => {
+    const TestComponent = {
+      template: `
+        <div>
+          <div k-if="!message">There is no message yet</div>
+          <div k-else>{{ reversedMessage }}</div>
+        </div>
+      `,
+      data: () => ({
+        message: 'egassem'
+      }),
+      computed: {
+        reversedMessage: function() {
+          return this.message
+            .split('')
+            .reverse()
+            .join('')
+        }
+      }
+    }
+    const wrapper = mountingMethod(TestComponent)
+    await wrapper.setData({ message: null })
+    expect(wrapper.text()).to.equal('There is no message yet')
+  })
+
+  it('updates an existing property in a data object', () => {
+    const TestComponent = {
+      data: () => ({
+        anObject: {
+          propA: {
+            prop1: 'a'
+          },
+          propB: 'b'
+        }
+      }),
+      render: () => {}
+    }
+    const wrapper = mountingMethod(TestComponent)
+    wrapper.setData({
+      anObject: {
+        propA: {
+          prop1: 'c'
+        }
+      }
+    })
+    expect(wrapper.vm.anObject.propB).to.equal('b')
+    expect(wrapper.vm.anObject.propA.prop1).to.equal('c')
+  })
+
+  it('should append a new property to an object without removing existing properties', () => {
+    const TestComponent = {
+      data: () => ({
+        anObject: {
+          propA: {
+            prop1: 'a'
+          },
+          propB: 'b'
+        }
+      }),
+      render: () => {}
+    }
+    const wrapper = mountingMethod(TestComponent)
+    wrapper.setData({
+      anObject: {
+        propA: {
+          prop2: 'b'
+        }
+      }
+    })
+    expect(wrapper.vm.anObject.propA.prop1).to.equal('a')
+    expect(wrapper.vm.anObject.propA.prop2).to.equal('b')
+  })
+
+  it('handles undefined values', async () => {
+    const TestComponent = {
+      template: `
+        <div>
+          {{undefinedProperty && undefinedProperty.foo}}
+        </div>
+      `,
+      data: () => ({
+        undefinedProperty: undefined
+      })
+    }
+    const wrapper = mountingMethod(TestComponent)
+    await wrapper.setData({
+      undefinedProperty: {
+        foo: 'baz'
+      }
+    })
+    expect(wrapper.text()).to.contain('baz')
+  })
+
+  it('handles null values', async () => {
+    const TestComponent = {
+      template: `
+        <div>{{nullProperty && nullProperty.foo}}</div>
+      `,
+      data: () => ({
+        nullProperty: null
+      })
+    }
+    const wrapper = mountingMethod(TestComponent)
+    await wrapper.setData({
+      nullProperty: {
+        foo: 'bar',
+        another: null
+      }
+    })
+    expect(wrapper.text()).to.contain('bar')
+    wrapper.setData({
+      nullProperty: {
+        another: {
+          obj: true
+        }
+      }
+    })
+    expect(wrapper.vm.nullProperty.another.obj).to.equal(true)
+  })
+
+  it('does not merge arrays', async () => {
+    const TestComponent = {
+      template: '<div>{{nested.nested.nestedArray[0]}}</div>',
+      data: () => ({
+        items: [1, 2],
+        nested: {
+          nested: {
+            nestedArray: [1, 2]
+          }
+        }
+      })
+    }
+    const wrapper = mountingMethod(TestComponent)
+    wrapper.setData({
+      items: [3]
+    })
+    expect(wrapper.vm.items).to.deep.equal([3])
+    await wrapper.setData({
+      nested: {
+        nested: {
+          nestedArray: [10]
+        }
+      }
+    })
+    expect(wrapper.text()).to.equal('10')
+    expect(wrapper.vm.nested.nested.nestedArray).to.deep.equal([10])
+  })
+
+  it('should set property in existing data object', async () => {
+    const TestComponent = {
+      data: () => ({
+        anObject: {
+          propA: 'a',
+          propB: 'b'
+        }
+      }),
+      computed: {
+        anObjectKeys() {
+          return Object.keys(this.anObject).join(',')
+        }
+      },
+      template: `<div>{{ anObjectKeys }}</div>`
+    }
+    const wrapper = mountingMethod(TestComponent)
+    await wrapper.setData({
+      anObject: {
+        propC: 'c'
+      }
+    })
+    expect(wrapper.vm.anObject.propA).to.equal('a')
+    expect(wrapper.vm.anObject.propB).to.equal('b')
+    expect(wrapper.vm.anObject.propC).to.equal('c')
+    expect(wrapper.vm.anObjectKeys).to.equal('propA,propB,propC')
+    expect(wrapper.html()).to.equal('<div>propA,propB,propC</div>')
+  })
+
+  it('allows setting data of type Date synchronously', () => {
+    const TestComponent = {
+      template: `
+        <div>
+          {{selectedDate}}
+        </div>
+      `,
+      data: () => ({
+        selectedDate: undefined
+      })
+    }
+    const testDate = new Date()
+    const wrapper = mountingMethod(TestComponent)
+    wrapper.setData({ selectedDate: testDate })
+    expect(wrapper.vm.selectedDate).to.equal(testDate)
+  })
+})

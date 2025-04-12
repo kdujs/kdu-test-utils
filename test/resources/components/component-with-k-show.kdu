@@ -1,0 +1,19 @@
+<template>
+  <div k-show="rootReady">
+    <div k-show="!ready" class="not-ready">not-ready</div>
+
+    <div k-show="ready" class="parent ready">
+      <div class="child ready">ready</div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'component-with-show',
+  data: () => ({
+    ready: false,
+    rootReady: true
+  })
+}
+</script>

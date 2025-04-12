@@ -12,8 +12,11 @@
     "plugin:kdu-libs/recommended",
     "plugin:flowtype/recommended"
   ],
-  rules: {
+  "rules": {
     "no-debugger": 2,
-    "no-proto": 0
+    "no-proto": 0,
+    "space-before-function-paren": 0,
+    "object-curly-spacing": 0,
+    "indent": 0
   }
 }

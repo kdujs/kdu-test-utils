@@ -1,0 +1,36 @@
+{
+  "name": "@kdujs/server-test-utils",
+  "version": "1.0.0-0",
+  "description": "Utilities for testing Kdu components.",
+  "main": "dist/kdu-server-test-utils.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/*.js",
+    "types/index.d.ts"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:test": "cross-env NODE_ENV=test node scripts/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kdujs/kdu-test-utils.git",
+    "directory": "packages/server-test-utils"
+  },
+  "author": "kdujs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kdujs/kdu-test-utils/issues"
+  },
+  "homepage": "https://github.com/kdujs/kdu-test-utils#readme",
+  "dependencies": {
+    "@types/cheerio": "0.22.10",
+    "cheerio": "1.0.0-rc.2"
+  },
+  "peerDependencies": {
+    "@kdujs/test-utils": "*",
+    "kdu": "2.x",
+    "kdu-server-renderer": "2.x",
+    "kdu-template-compiler": "^2.x"
+  }
+}

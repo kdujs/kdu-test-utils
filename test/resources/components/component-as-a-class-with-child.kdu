@@ -1,0 +1,18 @@
+<template>
+  <div>
+    <a-component />
+  </div>
+</template>
+
+<script>
+import Kdu from 'kdu'
+import Component from 'kdu-class-component'
+import AComponent from './component.kdu'
+
+@Component({
+  components: {
+    AComponent
+  }
+})
+export default class CogPage extends Kdu {}
+</script>
