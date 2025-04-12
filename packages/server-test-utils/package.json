@@ -1,6 +1,6 @@
 {
   "name": "@kdujs/server-test-utils",
-  "version": "1.0.0-0",
+  "version": "1.0.0",
   "description": "Utilities for testing Kdu components.",
   "main": "dist/kdu-server-test-utils.js",
   "types": "types/index.d.ts",
